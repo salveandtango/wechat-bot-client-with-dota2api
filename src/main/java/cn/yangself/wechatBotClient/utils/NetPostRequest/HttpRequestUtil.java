@@ -79,6 +79,7 @@ public class HttpRequestUtil {
      */
     public JSONObject sendGetWithHeader(HttpHeaders headers, String url, Map<String, String> getParam) {
         String dateTime = dateUtil.now();
+        System.out.println(generateGETParam(url, getParam));
         try {
             ResponseEntity<JSONObject> responseEntity = restTemplate.exchange(
                     generateGETParam(url, getParam),
@@ -86,7 +87,7 @@ public class HttpRequestUtil {
                     new HttpEntity<String>(headers),
                     JSONObject.class
             );
-            log.info("Get request with header start, dateTime: {}, headers: {}, url: {}, param: {}", dateTime, headers, url, getParam.toString());
+            log.info("Get request with header start, dateTime: {}, headers: {}, url: {}, param: {}, response: {}", dateTime, headers, url, getParam.toString(), Objects.requireNonNull(responseEntity.getBody()).toJSONString());
             return responseEntity.getBody();
         } catch (HttpClientErrorException.BadRequest e) {
             String errorMessage = e.getMessage();
@@ -129,13 +130,13 @@ public class HttpRequestUtil {
                     .append(value)
                     .append("&");
         }
-        /*for (Map.Entry map : params.entrySet()) {
-            url.append(map.getKey())
+/*        for (Map.Entry map : params.entrySet()) {
+            sb.append(map.getKey())
                     .append("=")
                     .append(map.getValue())
                     .append("&");
         }*/
-        return sb.substring(0, url.length() - 1);
+        return sb.substring(0, sb.length() - 1);
     }
 
 

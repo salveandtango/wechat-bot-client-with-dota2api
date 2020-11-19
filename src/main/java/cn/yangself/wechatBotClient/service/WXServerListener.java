@@ -9,6 +9,7 @@ import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 
 import java.net.URI;
@@ -20,16 +21,20 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 @Slf4j
 public class WXServerListener extends WebSocketClient {
+
+    @Autowired
+    private BattleReport battleReport;
 
     private static final int HEART_BEAT = 5005;             //服务器返回心跳包
     private static final int RECV_TXT_MSG = 1;              //收到的消息为文字消息
     private static final int RECV_PIC_MSG = 3;              //收到的消息为图片消息
     private static final int USER_LIST = 5000;              //发送消息类型为获取用户列表
-    private static final int GET_USER_LIST_SUCCESS = 5001; //获取用户列表成功
-    private static final int GET_USER_LIST_FAIL = 5002; //获取用户列表失败
+    private static final int GET_USER_LIST_SUCCESS = 5001;  //获取用户列表成功
+    private static final int GET_USER_LIST_FAIL = 5002;     //获取用户列表失败
     private static final int TXT_MSG = 555;                 //发送消息类型为文本
     private static final int PIC_MSG = 500;                 //发送消息类型为图片
     private static final int AT_MSG = 550;                  //发送群中@用户的消息
@@ -43,6 +48,8 @@ public class WXServerListener extends WebSocketClient {
     private static final String ROOM_MEMBER_LIST = "op:list member";
     private static final String CONTACT_LIST = "user list";
     private static final String NULL_MSG = "null";
+
+    private static final String FIXED_WXID = "wxid_8vxr5qokmq0q22";
 
     public WXServerListener(String url) throws URISyntaxException {
         super(new URI(url));
@@ -60,32 +67,44 @@ public class WXServerListener extends WebSocketClient {
      */
     @Override
     public void onMessage(String s) {
-        //在这里编写应答的一些代码
-        //可以在这里通过正则，或者是发送的消息类型进行判断，进行一些文字回复
-        //也可以在这里调用的其他的接口，可以使用Utils包下面的NetPostRequest进行相应的调用
-
-        //注意对sender为ROOT时的消息进行过滤，还有对公众号的消息进行过滤(gh_xxxxxx)
+        //封装msg对象
         JSONObject result = JSONObject.parseObject(s);
         MessageDto msg = JSONObject.toJavaObject(result, MessageDto.class);
-//        log.info("接收到的消息 --> " + s);
+        //屏蔽ROOT发送的无异议信息
         if (!"ROOT".equals(msg.getSender())) {
             log.info("接收到的消息 --> " + s);
+            //信息主体
             String content = msg.getContent();
-            switch (content) {
-                case "战报":
-                    //获取该用户wxid并匹配其dota2数字ID
-                    String wxid = msg.getSender();
-                    List<Map<String,String>> mapList = WxData.GET_WX_AND_DOTA_ID();
-                    for (Map<String,String> map : mapList){
-                        if (wxid.equals(map.get("wxid"))){
-                            //查战绩
-
+            //wxid(wxid或者self)
+            String wxid = msg.getSender();
+            //发送对象(群消息或者filehelper)
+            String receiver = msg.getReceiver();
+            //匹配字符
+            String report = "战报";
+            String roomList = "获取群成员消息";
+            boolean reportIs = Pattern.matches(report, content);
+            boolean roomListIs = Pattern.matches(roomList, content);
+            if (reportIs){
+                //获取该用户wxid并匹配其dota2数字ID
+                List<Map<String, String>> mapList = WxData.GET_WX_AND_DOTA_ID();
+                for (Map<String, String> map : mapList) {
+                    if (wxid.equals(map.get("wxid"))) {
+                        //获取匹配的account_id
+                        String accountId = map.get("account_id");
+                        //查战绩
+                        String reportMsg = battleReport.getReport(accountId);
+                        if (!"self".equals(receiver)) {
+                            sendTextMsg(receiver, reportMsg);
+                        } else {
+                            sendTextMsg(wxid, reportMsg);
                         }
+                    } else {
+                        sendAtMsg(FIXED_WXID, receiver, "还未给你录入查询信息");
                     }
-                    break;
-                case "1":
-                    sendTextMsg(msg.getContent(), "1");
-                    break;
+                }
+            }else if(roomListIs){
+                getRoomMemberList();
+
             }
         }
 
@@ -232,6 +251,5 @@ public class WXServerListener extends WebSocketClient {
                     WechatBotClientApplication.args);
         });
         threadPool.shutdown();
-
     }
 }
