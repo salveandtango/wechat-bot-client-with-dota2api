@@ -1,6 +1,6 @@
 package cn.yangself.wechatBotClient.service.dota2;
 
-import cn.yangself.wechatBotClient.dto.DotaHeros;
+import cn.yangself.wechatBotClient.constant.Dota2;
 import cn.yangself.wechatBotClient.dto.PlayerMatchDetail;
 import cn.yangself.wechatBotClient.utils.DateUtil;
 import cn.yangself.wechatBotClient.utils.NetPostRequest.HttpRequestUtil;
@@ -8,7 +8,6 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -23,33 +22,18 @@ import java.util.Map;
  */
 @Component
 @Slf4j
-public class BattleReport {
+public class BattleReportGen {
 
     private HttpRequestUtil httpRequestUtil;
     private DateUtil dateUtil;
 
     @Autowired
-    public BattleReport(HttpRequestUtil httpRequestUtil, DateUtil dateUtil) {
+    public BattleReportGen(HttpRequestUtil httpRequestUtil, DateUtil dateUtil) {
         this.httpRequestUtil = httpRequestUtil;
         this.dateUtil = dateUtil;
     }
 
-    /**
-     * steam web key
-     */
-    private final static String KEY = "BC0E8C660BB3EAB9F6E7AC1FDF0F0C92";
-    /**
-     * 比赛详情查询接口
-     */
-    private final static String GET_MATCH_DETAIL = "https://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/v1/";
-    /**
-     * 比赛历史查询接口
-     */
-    private final static String GET_MATCH_HISTORY = "https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/v1/";
-    /**
-     * 英雄查询接口
-     */
-    private final static String GET_ALL_HEROS = "https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/v1/";
+
     /**
      * 阵营划分界限, 4以下为天辉, 以上为夜魇
      */
@@ -156,7 +140,7 @@ public class BattleReport {
     private PlayerMatchDetail generator(JSONObject onePlayerDetail) {
         PlayerMatchDetail pmd = new PlayerMatchDetail();
         String hero_id = onePlayerDetail.getString("hero_id");
-        for (JSONObject jsonObject : DotaHeros.GET_HERO_LIST()) {
+        for (JSONObject jsonObject : Dota2.GET_HERO_LIST()) {
             if (Integer.parseInt(hero_id) == jsonObject.getInteger("id")) {
                 pmd.setHeroName(jsonObject.getString("localized_name"));
                 break;
@@ -191,28 +175,19 @@ public class BattleReport {
      * @return JSONObject
      */
     private JSONObject getLastMatchDetail(String accountId) {
-        Map<String, String> param = new HashMap<>();
+        Map<String, String> param = new HashMap<>(2);
         param.put("account_id", accountId);
-        param.put("key", KEY);
-        JSONObject matchHistory = httpRequestUtil.sendGet(GET_MATCH_HISTORY, param);
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.add(":authority", "api.steampowered.com");
-//        headers.add(":method", "GET");
-//        headers.add(":path", "/IDOTA2Match_570/GetMatchHistory/v1/?account_id=210051755&key=BC0E8C660BB3EAB9F6E7AC1FDF0F0C92");
-//        headers.add(":scheme", "https");
-//        headers.add("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9");
-//        headers.add("accept-encoding", "gzip, deflate, br");
-//        headers.add("accept-language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6");
-//        headers.add("cache-control", "max-age=0");
-//        headers.add("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9");
-//        JSONObject matchHistory = httpRequestUtil.sendGetWithHeader(headers, GET_MATCH_HISTORY, param);
+        param.put("key", Dota2.KEY);
+        JSONObject matchHistory = httpRequestUtil.sendGet(Dota2.GET_MATCH_HISTORY, param);
         JSONObject result = matchHistory.getJSONObject("result");
         JSONArray matchArray = result.getJSONArray("matches");
         JSONObject lastMatch = matchArray.getJSONObject(0);
         String matchId = lastMatch.getString("match_id");
         Map<String, String> secondParam = new HashMap<>();
         secondParam.put("match_id", matchId);
-        secondParam.put("key", KEY);
-        return httpRequestUtil.sendGet(GET_MATCH_DETAIL, secondParam);
+        secondParam.put("key", Dota2.KEY);
+        return httpRequestUtil.sendGet(Dota2.GET_MATCH_DETAIL, secondParam);
     }
+
+
 }

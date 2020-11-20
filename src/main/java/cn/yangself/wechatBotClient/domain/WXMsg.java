@@ -17,6 +17,7 @@ public class WXMsg {
     private String roomId;
     private int type;
     private String nick;
+    private String nickname;
 
     public String toJson() {
         return JSON.toJSONString(this);

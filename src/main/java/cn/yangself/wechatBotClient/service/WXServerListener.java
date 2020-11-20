@@ -1,10 +1,13 @@
 package cn.yangself.wechatBotClient.service;
 
 import cn.yangself.WechatBotClientApplication;
+import cn.yangself.wechatBotClient.constant.WxCode;
 import cn.yangself.wechatBotClient.domain.WXMsg;
-import cn.yangself.wechatBotClient.dto.WxData;
+import cn.yangself.wechatBotClient.constant.WxData;
 import cn.yangself.wechatBotClient.dto.MessageDto;
-import cn.yangself.wechatBotClient.service.dota2.BattleReport;
+import cn.yangself.wechatBotClient.service.dota2.BattleReportGen;
+import cn.yangself.wechatBotClient.service.dota2.Dota2Bot;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.java_websocket.client.WebSocketClient;
@@ -27,29 +30,13 @@ import java.util.regex.Pattern;
 public class WXServerListener extends WebSocketClient {
 
     @Autowired
-    private BattleReport battleReport;
+    private Dota2Bot dota2Bot;
 
-    private static final int HEART_BEAT = 5005;             //服务器返回心跳包
-    private static final int RECV_TXT_MSG = 1;              //收到的消息为文字消息
-    private static final int RECV_PIC_MSG = 3;              //收到的消息为图片消息
-    private static final int USER_LIST = 5000;              //发送消息类型为获取用户列表
-    private static final int GET_USER_LIST_SUCCESS = 5001;  //获取用户列表成功
-    private static final int GET_USER_LIST_FAIL = 5002;     //获取用户列表失败
-    private static final int TXT_MSG = 555;                 //发送消息类型为文本
-    private static final int PIC_MSG = 500;                 //发送消息类型为图片
-    private static final int AT_MSG = 550;                  //发送群中@用户的消息
-    private static final int CHATROOM_MEMBER = 5010;        //获取群成员
-    private static final int CHATROOM_MEMBER_NICK = 5020;
-    private static final int PERSONAL_INFO = 6500;
-    private static final int DEBUG_SWITCH = 6000;
-    private static final int PERSONAL_DETAIL = 6550;
-    private static final int DESTROY_ALL = 9999;
 
     private static final String ROOM_MEMBER_LIST = "op:list member";
     private static final String CONTACT_LIST = "user list";
     private static final String NULL_MSG = "null";
 
-    private static final String FIXED_WXID = "wxid_8vxr5qokmq0q22";
 
     public WXServerListener(String url) throws URISyntaxException {
         super(new URI(url));
@@ -70,42 +57,25 @@ public class WXServerListener extends WebSocketClient {
         //封装msg对象
         JSONObject result = JSONObject.parseObject(s);
         MessageDto msg = JSONObject.toJavaObject(result, MessageDto.class);
-        //屏蔽ROOT发送的无异议信息
+        //屏蔽ROOT发送的无意义信息
         if (!"ROOT".equals(msg.getSender())) {
             log.info("接收到的消息 --> " + s);
-            //信息主体
             String content = msg.getContent();
-            //wxid(wxid或者self)
             String wxid = msg.getSender();
-            //发送对象(群消息或者filehelper)
             String receiver = msg.getReceiver();
-            //匹配字符
-            String report = "战报";
-            String roomList = "获取群成员消息";
-            boolean reportIs = Pattern.matches(report, content);
-            boolean roomListIs = Pattern.matches(roomList, content);
-            if (reportIs){
-                //获取该用户wxid并匹配其dota2数字ID
-                List<Map<String, String>> mapList = WxData.GET_WX_AND_DOTA_ID();
-                for (Map<String, String> map : mapList) {
-                    if (wxid.equals(map.get("wxid"))) {
-                        //获取匹配的account_id
-                        String accountId = map.get("account_id");
-                        //查战绩
-                        String reportMsg = battleReport.getReport(accountId);
-                        if (!"self".equals(receiver)) {
-                            sendTextMsg(receiver, reportMsg);
-                        } else {
-                            sendTextMsg(wxid, reportMsg);
-                        }
-                    } else {
-                        sendAtMsg(FIXED_WXID, receiver, "还未给你录入查询信息");
-                    }
+            if (content.contains("战报")) {
+                String reportMsg = dota2Bot.report(content, wxid);
+                if (!receiver.equals("self")) {
+                    sendTextMsg(receiver, reportMsg);
+                } else {
+                    sendTextMsg(wxid, reportMsg);
                 }
-            }else if(roomListIs){
-                getRoomMemberList();
-
+            } else if (content.equals("1")) {
+                
+            } else if (content.equals("2")) {
+                sendAtMsg("wxid_c3umm3gzdaw822", receiver, "发送艾特消息", "tango");
             }
+
         }
 
     }
@@ -163,7 +133,7 @@ public class WXServerListener extends WebSocketClient {
         String json = WXMsg.builder()
                 .content(text)
                 .wxid(wxid)
-                .type(TXT_MSG)
+                .type(WxCode.TXT_MSG)
                 .id(getSessionId())
                 .build()
                 .toJson();
@@ -182,7 +152,7 @@ public class WXServerListener extends WebSocketClient {
         String json = WXMsg.builder()
                 .content(imgUrlStr)
                 .wxid(wxid)
-                .type(PIC_MSG)
+                .type(WxCode.PIC_MSG)
                 .id(getSessionId())
                 .build()
                 .toJson();
@@ -193,14 +163,15 @@ public class WXServerListener extends WebSocketClient {
     /**
      * 发送AT类型消息 ---> 暂不可用
      */
-    public void sendAtMsg(String wxid, String roomId, String text) {
+    public void sendAtMsg(String wxid, String roomId, String text, String nickName) {
         //创建发送消息JSON
         String json = WXMsg.builder()
                 .content(text)
                 .wxid(wxid)
                 .roomId(roomId)
-                .type(AT_MSG)
+                .type(WxCode.AT_MSG)
                 .id(getSessionId())
+                .nick(nickName)
                 .build()
                 .toJson();
         log.info("发送微信群AT成员消息 --> " + json);
@@ -215,7 +186,7 @@ public class WXServerListener extends WebSocketClient {
         String json = WXMsg.builder()
                 .content(CONTACT_LIST)
                 .wxid(NULL_MSG)
-                .type(USER_LIST)
+                .type(WxCode.USER_LIST)
                 .id(getSessionId())
                 .build()
                 .toJson();
@@ -231,11 +202,27 @@ public class WXServerListener extends WebSocketClient {
         String json = WXMsg.builder()
                 .content(ROOM_MEMBER_LIST)
                 .wxid(NULL_MSG)
-                .type(CHATROOM_MEMBER)
+                .type(WxCode.CHATROOM_MEMBER)
                 .id(getSessionId())
                 .build()
                 .toJson();
         log.info("发送获取所有群成员列表请求 --> " + json);
+        sendMsg(json);
+    }
+
+    /**
+     * 获取群成员昵称
+     */
+    public void getNicksByRoomId(String roomId) {
+        //创建发送消息JSON
+        String json = WXMsg.builder()
+                .content(roomId)
+                .wxid("ROOT")
+                .type(WxCode.CHATROOM_MEMBER_NICK)
+                .id(getSessionId())
+                .build()
+                .toJson();
+        log.info("发起获取群成员昵称列表请求 --> " + json);
         sendMsg(json);
     }
 
