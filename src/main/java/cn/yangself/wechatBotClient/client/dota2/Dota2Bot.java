@@ -1,4 +1,4 @@
-package cn.yangself.wechatBotClient.service.dota2;
+package cn.yangself.wechatBotClient.client.dota2;
 
 import cn.yangself.wechatBotClient.constant.Dota2;
 import cn.yangself.wechatBotClient.constant.WxData;

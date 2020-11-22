@@ -5,3 +5,34 @@ config:
 
 server:
   port: 8080
+spring:
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://106.53.127.60:3306/wechat_bot
+    username: root
+    password: 123456
+    data: classpath:/mapper/**/*Mapper.xml
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 15
+      auto-commit: true
+      idle-timeout: 30000
+      pool-name: leisure-hikari-pool
+      max-lifetime: 120000
+      connection-timeout: 30000
+  freemarker:
+    template-loader-path: classpath:/templates/
+    cache: false
+    charset: UTF-8
+    check-template-location: true
+    content-type: text/html
+    expose-request-attributes: false
+    expose-session-attributes: false
+    request-context-attribute: request
+    suffix: .html
+
+mybatis-plus:
+  mapper-locations: classpath:/mapper/**/*Mapper.xml
+  typeAliasesPackage: cn.yangself.wechatBotClient.entity
+  configuration:
+    map-underscore-to-camel-case: true

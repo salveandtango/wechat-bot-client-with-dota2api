@@ -1,7 +1,8 @@
 package cn.yangself;
 
-import cn.yangself.wechatBotClient.service.WXServerListener;
+import cn.yangself.wechatBotClient.client.WXServerListener;
 import org.java_websocket.enums.ReadyState;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -9,6 +10,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
+@MapperScan("cn.yangself.wechatBotClient.mapper")
 public class WechatBotClientApplication {
 
     @Value("${config.weChat.url}")

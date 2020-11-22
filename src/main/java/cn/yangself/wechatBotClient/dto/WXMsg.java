@@ -1,4 +1,4 @@
-package cn.yangself.wechatBotClient.domain;
+package cn.yangself.wechatBotClient.dto;
 
 import com.alibaba.fastjson.JSON;
 import lombok.AllArgsConstructor;

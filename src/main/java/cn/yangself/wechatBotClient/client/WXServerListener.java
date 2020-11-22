@@ -1,12 +1,13 @@
-package cn.yangself.wechatBotClient.service;
+package cn.yangself.wechatBotClient.client;
 
 import cn.yangself.WechatBotClientApplication;
 import cn.yangself.wechatBotClient.constant.WxCode;
-import cn.yangself.wechatBotClient.domain.WXMsg;
-import cn.yangself.wechatBotClient.constant.WxData;
+import cn.yangself.wechatBotClient.dto.WXMsg;
 import cn.yangself.wechatBotClient.dto.MessageDto;
-import cn.yangself.wechatBotClient.service.dota2.BattleReportGen;
-import cn.yangself.wechatBotClient.service.dota2.Dota2Bot;
+import cn.yangself.wechatBotClient.client.dota2.Dota2Bot;
+import cn.yangself.wechatBotClient.entity.WechatData;
+import cn.yangself.wechatBotClient.service.IWechatDataService;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
@@ -18,19 +19,19 @@ import org.springframework.boot.SpringApplication;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
 @Slf4j
 public class WXServerListener extends WebSocketClient {
 
     @Autowired
     private Dota2Bot dota2Bot;
+
+    @Autowired
+    private IWechatDataService dataService;
 
 
     private static final String ROOM_MEMBER_LIST = "op:list member";
@@ -61,19 +62,23 @@ public class WXServerListener extends WebSocketClient {
         if (!"ROOT".equals(msg.getSender())) {
             log.info("接收到的消息 --> " + s);
             String content = msg.getContent();
-            String wxid = msg.getSender();
-            String receiver = msg.getReceiver();
-            if (content.contains("战报")) {
-                String reportMsg = dota2Bot.report(content, wxid);
-                if (!receiver.equals("self")) {
-                    sendTextMsg(receiver, reportMsg);
-                } else {
-                    sendTextMsg(wxid, reportMsg);
+//            String wxid = msg.getSender();
+//            String receiver = msg.getReceiver();
+            int type = msg.getType();
+            if (content.contains("请求")) {
+                getContactList();
+//                getRoomMemberList();
+            }else if (type == 5001) {
+                JSONObject jsonObject = JSON.parseObject(s);
+                JSONArray contentArray = jsonObject.getJSONArray("content");
+                for(int i = 0; i<contentArray.size(); i++){
+                    String name = contentArray.getJSONObject(i).getString("name");
+                    String wxid = contentArray.getJSONObject(i).getString("wxid");
+                    WechatData wechatData = new WechatData();
+                    wechatData.setNickName(name);
+                    wechatData.setWxid(wxid);
+                    dataService.save(wechatData);
                 }
-            } else if (content.equals("1")) {
-                
-            } else if (content.equals("2")) {
-                sendAtMsg("wxid_c3umm3gzdaw822", receiver, "发送艾特消息", "tango");
             }
 
         }

@@ -1,4 +1,4 @@
-package cn.yangself.wechatBotClient.service.dota2;
+package cn.yangself.wechatBotClient.client.dota2;
 
 import cn.yangself.wechatBotClient.constant.Dota2;
 import cn.yangself.wechatBotClient.dto.PlayerMatchDetail;
@@ -140,14 +140,14 @@ public class BattleReportGen {
     private PlayerMatchDetail generator(JSONObject onePlayerDetail) {
         PlayerMatchDetail pmd = new PlayerMatchDetail();
         String hero_id = onePlayerDetail.getString("hero_id");
-        for (JSONObject jsonObject : Dota2.GET_HERO_LIST()) {
+        /*for (JSONObject jsonObject : Dota2.GET_HERO_LIST()) {
             if (Integer.parseInt(hero_id) == jsonObject.getInteger("id")) {
                 pmd.setHeroName(jsonObject.getString("localized_name"));
                 break;
             } else {
                 pmd.setHeroName("未知英雄");
             }
-        }
+        }*/
         String player_slot = onePlayerDetail.getString("player_slot");
         if (Integer.parseInt(player_slot) < PLAYER_SLOT) {
             pmd.setPlayer_slot(RADIANT);
