@@ -1,39 +1,32 @@
 package cn.yangself.wechatBotClient.client;
 
-import cn.yangself.WechatBotClientApplication;
 import cn.yangself.wechatBotClient.constant.WxCode;
 import cn.yangself.wechatBotClient.dto.MessageDto;
 import cn.yangself.wechatBotClient.dto.WXMsg;
 import cn.yangself.wechatBotClient.service.IWechatDataService;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.core.ApplicationContext;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
-import org.springframework.boot.SpringApplication;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Date;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class WXServerListener extends WebSocketClient {
-    private static ApplicationContext applicationContext;
+
+    @Autowired
     private IWechatDataService dataService;
 
-    public static void setApplicationContext(ApplicationContext applicationContext) {
-        WXServerListener.applicationContext = applicationContext;
-    }
 
     private static final String ROOM_MEMBER_LIST = "op:list member";
     private static final String PERSONAL_DETAIL = "op:personal detail";
     private static final String CONTACT_LIST = "user list";
     private static final String NULL_MSG = "null";
     private static final String LITTLE_SHEEP = "wxid_c8yo19a6379722";
+
 
     public WXServerListener(String url) throws URISyntaxException {
         super(new URI(url));
@@ -42,13 +35,11 @@ public class WXServerListener extends WebSocketClient {
     @Override
     public void onOpen(ServerHandshake serverHandshake) {
         log.info("正在建立连接......");
+        log.info("准备初始化微信数据......");
     }
 
-    /**
-     * 在这里进行消息监听
-     *
-     * @param s
-     */
+
+
     @Override
     public void onMessage(String s) {
         //封装msg对象
@@ -62,13 +53,16 @@ public class WXServerListener extends WebSocketClient {
             String receiver = msg.getReceiver();
             int type = msg.getType();
             switch (type) {
-                case WxCode.USER_LIST:
+                case 5001:
                     dataService.loadWxData(content);
+                    log.info("准备匹配roomId...");
+                    getRoomMemberList();
                     break;
-                case WxCode.CHATROOM_MEMBER:
+                case 5010:
                     dataService.matchRoomId(content);
                     break;
             }
+
 
         }
 
@@ -91,11 +85,6 @@ public class WXServerListener extends WebSocketClient {
     }
 
 
-    /**
-     * 发送信息
-     *
-     * @param json 要发送信息的json字符串
-     */
     private void sendMsg(String json) {
         try {
             send(json);
@@ -107,21 +96,11 @@ public class WXServerListener extends WebSocketClient {
         }
     }
 
-    /**
-     * 获取会话ID
-     *
-     * @return
-     */
+
     private String getSessionId() {
         return String.valueOf(new Date().getTime());
     }
 
-    /**
-     * 发送文本消息
-     *
-     * @param wxid 个人的wxid或者群id（xxx@chatroom）
-     * @param text 要发送的消息内容
-     */
     public void sendTextMsg(String wxid, String text) {
         //创建发送消息JSON
         String json = WXMsg.builder()
@@ -135,12 +114,7 @@ public class WXServerListener extends WebSocketClient {
         sendMsg(json);
     }
 
-    /**
-     * 发送图片消息
-     *
-     * @param wxid      个人的wxid或者群id（xxx@chatroom）
-     * @param imgUrlStr 发送图片的绝对路径
-     */
+
     public void sendImgMsg(String wxid, String imgUrlStr) {
         //创建发送消息JSON
         String json = WXMsg.builder()
@@ -154,10 +128,20 @@ public class WXServerListener extends WebSocketClient {
         sendMsg(json);
     }
 
+    public void sendFileHelper(String text){
+        //创建发送消息JSON
+        String json = WXMsg.builder()
+                .content(text)
+                .receiver(text)
+                .type(555)
+                .id(getSessionId())
+                .build()
+                .toJson();
+        log.info("发送文件助手消息 --> " + json);
+        sendMsg(json);
+    }
 
-    /**
-     * 发送AT类型消息 ---> 暂不可用
-     */
+
     public void sendAtMsg(String wxid, String roomId, String text, String nickName) {
         //创建发送消息JSON
         String json = WXMsg.builder()
@@ -174,9 +158,6 @@ public class WXServerListener extends WebSocketClient {
     }
 
 
-    /**
-     * 获取联系人列表
-     */
     public void getContactList() {
         //创建发送消息JSON
         String json = WXMsg.builder()
@@ -190,9 +171,6 @@ public class WXServerListener extends WebSocketClient {
         sendMsg(json);
     }
 
-    /**
-     * 获取所有群成员列表
-     */
     public void getRoomMemberList() {
         //创建发送消息JSON
         String json = WXMsg.builder()
@@ -207,11 +185,6 @@ public class WXServerListener extends WebSocketClient {
     }
 
 
-    /**
-     * 查看个人信息详情 -->暂不可用
-     *
-     * @param wxid 微信id
-     */
     public void checkPersonalDetail(String wxid) {
         //创建发送消息JSON
         String json = WXMsg.builder()
@@ -238,9 +211,6 @@ public class WXServerListener extends WebSocketClient {
         sendMsg(json);
     }
 
-    /**
-     * 获取群成员昵称
-     */
     public void getNicksByRoomId(String roomId) {
         //创建发送消息JSON
         String json = WXMsg.builder()
@@ -254,10 +224,8 @@ public class WXServerListener extends WebSocketClient {
         sendMsg(json);
     }
 
-    /**
-     * Spring重启，实现客户端的自动重连
-     */
-    public void restartListener() {
+
+    /*public void restartListener() {
         ExecutorService threadPool = new ThreadPoolExecutor(1, 1, 0,
                 TimeUnit.SECONDS, new ArrayBlockingQueue<>(1), new ThreadPoolExecutor.DiscardOldestPolicy());
         threadPool.execute(() -> {
@@ -266,5 +234,5 @@ public class WXServerListener extends WebSocketClient {
                     WechatBotClientApplication.args);
         });
         threadPool.shutdown();
-    }
+    }*/
 }

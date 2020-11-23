@@ -15,6 +15,7 @@ public class WXMsg {
     private String wxid;
     private String content;
     private String roomId;
+    private String receiver;
     private int type;
     private String nick;
     private String nickname;

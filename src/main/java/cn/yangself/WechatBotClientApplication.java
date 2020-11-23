@@ -2,15 +2,16 @@ package cn.yangself;
 
 import cn.yangself.wechatBotClient.client.WXServerListener;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.core.ApplicationContext;
 import org.java_websocket.enums.ReadyState;
 import org.mybatis.spring.annotation.MapperScan;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
+
+import javax.websocket.Session;
+import java.net.URISyntaxException;
 
 @SpringBootApplication
 @MapperScan("cn.yangself.wechatBotClient.mapper")
@@ -27,7 +28,10 @@ public class WechatBotClientApplication {
     public static void main(String[] args) {
         WechatBotClientApplication.args = args;
         WechatBotClientApplication.context = SpringApplication.run(WechatBotClientApplication.class, args);
+//        WXServerListener.setApplicationContext(context);
     }
+
+
 
     @Bean
     public WXServerListener getWXServerListener() throws Exception {
@@ -36,12 +40,6 @@ public class WechatBotClientApplication {
         while (!client.getReadyState().equals(ReadyState.OPEN)) {
             Thread.sleep(500);
         }
-        Thread.sleep(5000);
-        log.info("准备初始化数据...");
-        client.getContactList();
-        Thread.sleep(1000);
-        log.info("准备匹配roomId...");
-        client.getRoomMemberList();
         return client;
     }
 }

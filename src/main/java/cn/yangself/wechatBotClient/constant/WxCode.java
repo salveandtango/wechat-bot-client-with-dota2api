@@ -14,6 +14,8 @@ public class WxCode {
     public static final int RECV_PIC_MSG = 3;
     //发送消息类型为获取用户列表
     public static final int USER_LIST = 5000;
+    //获取用户列表成功
+    public static final int GET_USER_LIST_SUCCESS = 5001;
     //获取用户列表失败
     public static final int GET_USER_LIST_FAIL = 5002;
     //发送消息类型为文本

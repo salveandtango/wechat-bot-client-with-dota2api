@@ -11,6 +11,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * <p>
  * 服务实现类
@@ -46,6 +48,17 @@ public class WechatDataServiceImpl extends ServiceImpl<WechatDataMapper, WechatD
 
     @Override
     public void matchRoomId(String content) {
+        //重置roomId所有已有的roomId, 进行更新
+        List<WechatData> wechatDataList = list();
+        for (WechatData dataTemple : wechatDataList) {
+            dataTemple.setRoomId("");
+            try {
+                updateById(dataTemple);
+            } catch (Exception e) {
+                log.error("重置roomId出错, 具体信息: {}", e.getMessage(), e);
+            }
+        }
+
         JSONArray array = JSON.parseArray(content);
         for (int i = 0; i < array.size(); i++) {
             JSONArray member = array.getJSONObject(i).getJSONArray("member");
