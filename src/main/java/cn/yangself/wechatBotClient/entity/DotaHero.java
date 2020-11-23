@@ -26,7 +26,7 @@ public class DotaHero implements Serializable {
     /**
      * 英雄ID
      */
-    private String heroId;
+    private Integer heroId;
 
     /**
      * 英雄名

@@ -36,3 +36,7 @@ mybatis-plus:
   typeAliasesPackage: cn.yangself.wechatBotClient.entity
   configuration:
     map-underscore-to-camel-case: true
+
+
+logging:
+  config: classpath:log4j2.xml

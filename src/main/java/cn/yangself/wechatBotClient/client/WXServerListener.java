@@ -2,18 +2,14 @@ package cn.yangself.wechatBotClient.client;
 
 import cn.yangself.WechatBotClientApplication;
 import cn.yangself.wechatBotClient.constant.WxCode;
-import cn.yangself.wechatBotClient.dto.WXMsg;
 import cn.yangself.wechatBotClient.dto.MessageDto;
-import cn.yangself.wechatBotClient.client.dota2.Dota2Bot;
-import cn.yangself.wechatBotClient.entity.WechatData;
+import cn.yangself.wechatBotClient.dto.WXMsg;
 import cn.yangself.wechatBotClient.service.IWechatDataService;
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.core.ApplicationContext;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 
 import java.net.URI;
@@ -26,18 +22,18 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class WXServerListener extends WebSocketClient {
-
-    @Autowired
-    private Dota2Bot dota2Bot;
-
-    @Autowired
+    private static ApplicationContext applicationContext;
     private IWechatDataService dataService;
 
+    public static void setApplicationContext(ApplicationContext applicationContext) {
+        WXServerListener.applicationContext = applicationContext;
+    }
 
     private static final String ROOM_MEMBER_LIST = "op:list member";
+    private static final String PERSONAL_DETAIL = "op:personal detail";
     private static final String CONTACT_LIST = "user list";
     private static final String NULL_MSG = "null";
-
+    private static final String LITTLE_SHEEP = "wxid_c8yo19a6379722";
 
     public WXServerListener(String url) throws URISyntaxException {
         super(new URI(url));
@@ -62,23 +58,16 @@ public class WXServerListener extends WebSocketClient {
         if (!"ROOT".equals(msg.getSender())) {
             log.info("接收到的消息 --> " + s);
             String content = msg.getContent();
-//            String wxid = msg.getSender();
-//            String receiver = msg.getReceiver();
+            String wxid = msg.getSender();
+            String receiver = msg.getReceiver();
             int type = msg.getType();
-            if (content.contains("请求")) {
-                getContactList();
-//                getRoomMemberList();
-            }else if (type == 5001) {
-                JSONObject jsonObject = JSON.parseObject(s);
-                JSONArray contentArray = jsonObject.getJSONArray("content");
-                for(int i = 0; i<contentArray.size(); i++){
-                    String name = contentArray.getJSONObject(i).getString("name");
-                    String wxid = contentArray.getJSONObject(i).getString("wxid");
-                    WechatData wechatData = new WechatData();
-                    wechatData.setNickName(name);
-                    wechatData.setWxid(wxid);
-                    dataService.save(wechatData);
-                }
+            switch (type) {
+                case WxCode.USER_LIST:
+                    dataService.loadWxData(content);
+                    break;
+                case WxCode.CHATROOM_MEMBER:
+                    dataService.matchRoomId(content);
+                    break;
             }
 
         }
@@ -89,7 +78,7 @@ public class WXServerListener extends WebSocketClient {
     public void onClose(int i, String s, boolean b) {
         log.info("断开连接！");
         //重启客户端
-        restartListener();
+//        restartListener();
     }
 
     @Override
@@ -98,7 +87,7 @@ public class WXServerListener extends WebSocketClient {
         log.info(e.getMessage());
         e.printStackTrace();
         //重启客户端
-        restartListener();
+//        restartListener();
     }
 
 
@@ -165,6 +154,7 @@ public class WXServerListener extends WebSocketClient {
         sendMsg(json);
     }
 
+
     /**
      * 发送AT类型消息 ---> 暂不可用
      */
@@ -182,6 +172,7 @@ public class WXServerListener extends WebSocketClient {
         log.info("发送微信群AT成员消息 --> " + json);
         sendMsg(json);
     }
+
 
     /**
      * 获取联系人列表
@@ -212,6 +203,38 @@ public class WXServerListener extends WebSocketClient {
                 .build()
                 .toJson();
         log.info("发送获取所有群成员列表请求 --> " + json);
+        sendMsg(json);
+    }
+
+
+    /**
+     * 查看个人信息详情 -->暂不可用
+     *
+     * @param wxid 微信id
+     */
+    public void checkPersonalDetail(String wxid) {
+        //创建发送消息JSON
+        String json = WXMsg.builder()
+                .content(PERSONAL_DETAIL)
+                .wxid(wxid)
+                .type(WxCode.PERSONAL_DETAIL)
+                .id(getSessionId())
+                .build()
+                .toJson();
+        log.info("发送个人信息查询 --> " + json);
+        sendMsg(json);
+    }
+
+    public void debugSwitch() {
+        //创建发送消息JSON
+        String json = WXMsg.builder()
+                .content("on")
+                .wxid("ROOT")
+                .type(WxCode.DEBUG_SWITCH)
+                .id(getSessionId())
+                .build()
+                .toJson();
+        log.info("开启调试模式 --> " + json);
         sendMsg(json);
     }
 

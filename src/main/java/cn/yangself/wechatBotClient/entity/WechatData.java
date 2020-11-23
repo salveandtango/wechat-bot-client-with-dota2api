@@ -33,5 +33,8 @@ public class WechatData implements Serializable {
      */
     private String nickName;
 
-
+    /**
+     * 群聊ID
+     */
+    private String roomId;
 }
