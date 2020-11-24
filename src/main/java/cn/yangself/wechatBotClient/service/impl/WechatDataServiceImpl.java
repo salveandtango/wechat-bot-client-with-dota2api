@@ -36,11 +36,10 @@ public class WechatDataServiceImpl extends ServiceImpl<WechatDataMapper, WechatD
             uw.eq("wxid", wxidTemple);
             WechatData wechatData = new WechatData();
             wechatData.setNickName(nickName);
-            wechatData.setWxid(wxidTemple);
             try {
                 saveOrUpdate(wechatData, uw);
             } catch (Exception e) {
-                log.error("初始化微信数据出错, 详情信息: {}", e.getMessage(), e);
+                log.error("初始化微信数据出错, 详情信息: {}", e.getMessage());
             }
         }
         log.info("初始化完成");
@@ -55,7 +54,7 @@ public class WechatDataServiceImpl extends ServiceImpl<WechatDataMapper, WechatD
             try {
                 updateById(dataTemple);
             } catch (Exception e) {
-                log.error("重置roomId出错, 具体信息: {}", e.getMessage(), e);
+                log.error("重置roomId出错, 具体信息: {}", e.getMessage());
             }
         }
 

@@ -13,8 +13,8 @@
         </Property>
         <Property name="testPath">
 <!--            /root/logs/leisure-manage-->
-<!--            C:\Users\19354\logs\wechat-bot-client-dota2api-->
-            C:\Users\Fixed\logs\wechat-bot-client-dota2api
+            C:\Users\19354\logs\wechat-bot-client-dota2api
+<!--            C:\Users\Fixed\logs\wechat-bot-client-dota2api-->
         </Property>
         <Property name="FormalPath">
         </Property>

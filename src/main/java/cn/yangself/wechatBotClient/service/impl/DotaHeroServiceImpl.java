@@ -1,6 +1,6 @@
 package cn.yangself.wechatBotClient.service.impl;
 
-import cn.yangself.wechatBotClient.constant.Dota2;
+import cn.yangself.wechatBotClient.constant.Dota2Api;
 import cn.yangself.wechatBotClient.entity.DotaHero;
 import cn.yangself.wechatBotClient.mapper.DotaHeroMapper;
 import cn.yangself.wechatBotClient.service.IDotaHeroService;
@@ -33,9 +33,9 @@ public class DotaHeroServiceImpl extends ServiceImpl<DotaHeroMapper, DotaHero> i
     @Override
     public void loadHeros() {
         Map<String, String> param = new HashMap<>();
-        param.put("key", Dota2.KEY);
+        param.put("key", Dota2Api.KEY);
         param.put("language", "zh_cn");
-        JSONObject result = httpRequestUtil.sendGet(Dota2.GET_ALL_HEROS, param).getJSONObject("result");
+        JSONObject result = httpRequestUtil.sendGet(Dota2Api.GET_ALL_HEROS, param).getJSONObject("result");
         JSONArray heros = result.getJSONArray("heroes");
         for (int i = 0; i < heros.size(); i++) {
             int heroId = heros.getJSONObject(i).getInteger("id");

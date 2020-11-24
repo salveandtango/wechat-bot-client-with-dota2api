@@ -1,5 +1,6 @@
 package cn.yangself.wechatBotClient.client;
 
+import cn.yangself.wechatBotClient.client.dota2.Dota2Bot;
 import cn.yangself.wechatBotClient.constant.WxCode;
 import cn.yangself.wechatBotClient.dto.MessageDto;
 import cn.yangself.wechatBotClient.dto.WXMsg;
@@ -20,7 +21,6 @@ public class WXServerListener extends WebSocketClient {
     @Autowired
     private IWechatDataService dataService;
 
-
     private static final String ROOM_MEMBER_LIST = "op:list member";
     private static final String PERSONAL_DETAIL = "op:personal detail";
     private static final String CONTACT_LIST = "user list";
@@ -32,12 +32,11 @@ public class WXServerListener extends WebSocketClient {
         super(new URI(url));
     }
 
+
     @Override
     public void onOpen(ServerHandshake serverHandshake) {
         log.info("正在建立连接......");
-        log.info("准备初始化微信数据......");
     }
-
 
 
     @Override
@@ -52,7 +51,15 @@ public class WXServerListener extends WebSocketClient {
             String wxid = msg.getSender();
             String receiver = msg.getReceiver();
             int type = msg.getType();
+            if (receiver != null && receiver.equals("filehelper") && content.equals("加载数据")) {
+                log.info("准备加载数据");
+                getContactList();
+            }
+            if(content.contains("刀塔")){
+//                Dota2Bot(wxid,content);
+            }
             switch (type) {
+                case 5000:
                 case 5001:
                     dataService.loadWxData(content);
                     log.info("准备匹配roomId...");
@@ -62,7 +69,6 @@ public class WXServerListener extends WebSocketClient {
                     dataService.matchRoomId(content);
                     break;
             }
-
 
         }
 
@@ -128,7 +134,7 @@ public class WXServerListener extends WebSocketClient {
         sendMsg(json);
     }
 
-    public void sendFileHelper(String text){
+    public void sendFileHelper(String text) {
         //创建发送消息JSON
         String json = WXMsg.builder()
                 .content(text)

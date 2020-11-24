@@ -17,7 +17,7 @@ spring:
       maximum-pool-size: 15
       auto-commit: true
       idle-timeout: 30000
-      pool-name: leisure-hikari-pool
+      pool-name: fixed-wechat-bot-pool
       max-lifetime: 120000
       connection-timeout: 30000
   freemarker:

@@ -1,9 +1,12 @@
 package cn.yangself.wechatBotClient.client.dota2;
 
+import cn.yangself.wechatBotClient.entity.WxidAccountid;
+import cn.yangself.wechatBotClient.service.IWxidAccountidService;
 import cn.yangself.wechatBotClient.utils.DateUtil;
 import cn.yangself.wechatBotClient.utils.NetPostRequest.HttpRequestUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,17 +19,15 @@ import java.util.regex.Pattern;
  * @Date 2020/11/20 12:28
  */
 @Slf4j
-@Service
+@Component
 public class Dota2Bot {
 
-    private HttpRequestUtil httpRequestUtil;
-    private DateUtil dateUtil;
+    private IWxidAccountidService wxidAccountidService;
     private BattleReportGen battleReportGen;
 
     @Autowired
-    public Dota2Bot(HttpRequestUtil httpRequestUtil, DateUtil dateUtil, BattleReportGen battleReportGen) {
-        this.httpRequestUtil = httpRequestUtil;
-        this.dateUtil = dateUtil;
+    public Dota2Bot(IWxidAccountidService wxidAccountidService, BattleReportGen battleReportGen) {
+        this.wxidAccountidService = wxidAccountidService;
         this.battleReportGen = battleReportGen;
     }
 
@@ -36,38 +37,35 @@ public class Dota2Bot {
     private static final String FIXED_WXID = "wxid_8vxr5qokmq0q22";
 
 
+    /**
+     * 战报发送
+     *
+     * @param wxid wxid
+     */
+    public String report(String wxid, String content) {
+        String resMsg = "";
+        //匹配字符
+        String matchString = "刀塔战报";
+        if (content.length() > matchString.length()) {
 
-//    /**
-//     * 战报发送
-//     *
-//     * @param wxid wxid
-//     */
-//    public String report(String content, String wxid) {
-//        String resMsg = null;
-//        //匹配字符
-//        String report = "战报";
-//        String roomList = "1";
-//        boolean reportIs = Pattern.matches(report, content);
-//        boolean roomListIs = Pattern.matches(roomList, content);
+        }
 //        if (reportIs) {
-//            if("self".equals(wxid)){
-//                wxid = FIXED_WXID;
-//            }
-//            List<Map<String, String>> dataList = WxData.GET_WX_AND_DOTA_ID();
-//            for (Map<String, String> map : dataList) {
-//                if (map.get("wxid").equals(wxid)) {
-//                    String accountId = map.get("account_id");
-//                    String str = battleReportGen.getReport(accountId);
-//                    resMsg = str != null ? str : "战报系统出错";
-//                    break;
-//                } else {
-//                    resMsg = "还未录入你的信息";
-//                }
-//            }
-//        } else if (roomListIs) {
-//            resMsg = "已获取群成员信息";
+            List<WxidAccountid> dataList = wxidAccountidService.list();
+            for (WxidAccountid entry : dataList) {
+                if (entry.getWxId().equals(wxid)) {
+                    String accountId = entry.getAccountId();
+                    String str = battleReportGen.getReport(accountId);
+                    resMsg = str != null ? str : "战报系统出错";
+                    break;
+                } else {
+                    resMsg = "";
+                }
+            }
+            if (resMsg.equals("")) {
+                resMsg = "还未录入你的信息, 可以按照以下格式和我说:\n刀塔id 1234...\n进行录入";
+            }
 //        }
-//        return resMsg;
-//    }
+        return resMsg;
+    }
 
 }

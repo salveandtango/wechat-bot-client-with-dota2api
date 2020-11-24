@@ -33,5 +33,8 @@ public class WxidAccountid implements Serializable {
      */
     private String accountId;
 
-
+    /**
+     * 自定义昵称
+     */
+    private String name;
 }

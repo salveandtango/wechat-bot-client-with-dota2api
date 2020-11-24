@@ -1,7 +1,9 @@
 package cn.yangself.wechatBotClient.client.dota2;
 
-import cn.yangself.wechatBotClient.constant.Dota2;
+import cn.yangself.wechatBotClient.constant.Dota2Api;
 import cn.yangself.wechatBotClient.dto.PlayerMatchDetail;
+import cn.yangself.wechatBotClient.entity.DotaHero;
+import cn.yangself.wechatBotClient.service.IDotaHeroService;
 import cn.yangself.wechatBotClient.utils.DateUtil;
 import cn.yangself.wechatBotClient.utils.NetPostRequest.HttpRequestUtil;
 import com.alibaba.fastjson.JSONArray;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,11 +29,13 @@ public class BattleReportGen {
 
     private HttpRequestUtil httpRequestUtil;
     private DateUtil dateUtil;
+    private IDotaHeroService dotaHeroService;
 
     @Autowired
-    public BattleReportGen(HttpRequestUtil httpRequestUtil, DateUtil dateUtil) {
+    public BattleReportGen(HttpRequestUtil httpRequestUtil, DateUtil dateUtil,IDotaHeroService dotaHeroService) {
         this.httpRequestUtil = httpRequestUtil;
         this.dateUtil = dateUtil;
+        this.dotaHeroService = dotaHeroService;
     }
 
 
@@ -44,6 +49,7 @@ public class BattleReportGen {
 
     /**
      * 通过accountId获取战报
+     *
      * @param accountId dota2数字id
      * @return 战报
      */
@@ -61,13 +67,21 @@ public class BattleReportGen {
         //参葬率
         BigDecimal mortalityRate;
 
+        //对局详情对象
         PlayerMatchDetail pmd = null;
+
+        //对局详情Json字符串
         JSONObject lastMatchDetail = getLastMatchDetail(accountId).getJSONObject("result");
+
         //游戏花费时长
         int duration = Integer.parseInt(lastMatchDetail.getString("duration"));
 
-        //一场比赛中的所有玩家游戏详情
+        //游戏结果
+        boolean radiantWin = lastMatchDetail.getBoolean("radiant_win");
+
+        //对局玩家jsonArray
         JSONArray players = lastMatchDetail.getJSONArray("players");
+
         for (int i = 0; i < players.size(); i++) {
             JSONObject onePlayerDetail = players.getJSONObject(i);
             String damage = onePlayerDetail.getString("hero_damage");
@@ -87,6 +101,11 @@ public class BattleReportGen {
             //提取对应玩家的对局详情
             if (account_id.equals(accountId)) {
                 pmd = generator(onePlayerDetail);
+                if (radiantWin) {
+                    pmd.setWinner("天辉获胜");
+                } else {
+                    pmd.setWinner("夜魇获胜");
+                }
             }
         }
         if (pmd != null) {
@@ -124,7 +143,7 @@ public class BattleReportGen {
             pmd.setOutputRate(percent.format(outputRate.doubleValue()));
             //输出经济比计算
             BigDecimal totalMoney = new BigDecimal((duration / 60) * Integer.parseInt(pmd.getGoldPerMin()));
-            BigDecimal outputEconomyRatio = new BigDecimal(pmd.getHeroDamage()).divide(totalMoney,2,BigDecimal.ROUND_HALF_UP);
+            BigDecimal outputEconomyRatio = new BigDecimal(pmd.getHeroDamage()).divide(totalMoney, 2, BigDecimal.ROUND_HALF_UP);
             pmd.setOutputEconomyRatio(outputEconomyRatio.toString());
             return pmd.toString();
         }
@@ -134,20 +153,21 @@ public class BattleReportGen {
     /**
      * 生成某个玩家的对局详情
      *
-     * @param onePlayerDetail JSONObject格式的对局详情
+     * @param onePlayerDetail JSONObject格式的玩家对局详情
      * @return PlayerMatchDetail
      */
     private PlayerMatchDetail generator(JSONObject onePlayerDetail) {
         PlayerMatchDetail pmd = new PlayerMatchDetail();
         String hero_id = onePlayerDetail.getString("hero_id");
-        /*for (JSONObject jsonObject : Dota2.GET_HERO_LIST()) {
-            if (Integer.parseInt(hero_id) == jsonObject.getInteger("id")) {
-                pmd.setHeroName(jsonObject.getString("localized_name"));
+        List<DotaHero> heroList = dotaHeroService.list();
+        for(DotaHero heroTemple : heroList){
+            if(hero_id.equals(heroTemple.getHeroId().toString())){
+                pmd.setHeroName(heroTemple.getTranslationCn());
                 break;
-            } else {
+            }else{
                 pmd.setHeroName("未知英雄");
             }
-        }*/
+        }
         String player_slot = onePlayerDetail.getString("player_slot");
         if (Integer.parseInt(player_slot) < PLAYER_SLOT) {
             pmd.setPlayer_slot(RADIANT);
@@ -177,16 +197,16 @@ public class BattleReportGen {
     private JSONObject getLastMatchDetail(String accountId) {
         Map<String, String> param = new HashMap<>(2);
         param.put("account_id", accountId);
-        param.put("key", Dota2.KEY);
-        JSONObject matchHistory = httpRequestUtil.sendGet(Dota2.GET_MATCH_HISTORY, param);
+        param.put("key", Dota2Api.KEY);
+        JSONObject matchHistory = httpRequestUtil.sendGet(Dota2Api.GET_MATCH_HISTORY, param);
         JSONObject result = matchHistory.getJSONObject("result");
         JSONArray matchArray = result.getJSONArray("matches");
         JSONObject lastMatch = matchArray.getJSONObject(0);
         String matchId = lastMatch.getString("match_id");
         Map<String, String> secondParam = new HashMap<>();
         secondParam.put("match_id", matchId);
-        secondParam.put("key", Dota2.KEY);
-        return httpRequestUtil.sendGet(Dota2.GET_MATCH_DETAIL, secondParam);
+        secondParam.put("key", Dota2Api.KEY);
+        return httpRequestUtil.sendGet(Dota2Api.GET_MATCH_DETAIL, secondParam);
     }
 
 

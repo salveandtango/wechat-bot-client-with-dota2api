@@ -15,6 +15,10 @@ public class PlayerMatchDetail {
      */
     String player_slot;
     /**
+     * 胜利方
+     */
+    String winner;
+    /**
      * 使用英雄
      */
     String heroName;
@@ -85,7 +89,7 @@ public class PlayerMatchDetail {
 
     @Override
     public String toString() {
-        return "阵营: " + player_slot + "\n" +
+        return "阵营: " + player_slot + "\t" + winner + "\n" +
                 "游戏时间: " + spendTime + "\n" +
                 "使用英雄: " + heroName + "\t" + "等级: " + level + "\n" +
                 "击杀: " + kills + "\t" + "死亡: " + deaths + "\t" + "助攻: " + assists + "\n" +
