@@ -14,12 +14,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 public class WXServerListener extends WebSocketClient {
 
     @Autowired
     private IWechatDataService dataService;
+    @Autowired
+    private Dota2Bot dota2Bot;
 
     private static final String ROOM_MEMBER_LIST = "op:list member";
     private static final String PERSONAL_DETAIL = "op:personal detail";
@@ -50,13 +54,15 @@ public class WXServerListener extends WebSocketClient {
             String content = msg.getContent();
             String wxid = msg.getSender();
             String receiver = msg.getReceiver();
+            String replyId = "";
+            if (receiver.contains("chatroom")) {
+                replyId = receiver;
+            }
             int type = msg.getType();
+            //数据加载
             if (receiver != null && receiver.equals("filehelper") && content.equals("加载数据")) {
                 log.info("准备加载数据");
                 getContactList();
-            }
-            if(content.contains("刀塔")){
-//                Dota2Bot(wxid,content);
             }
             switch (type) {
                 case 5000:
@@ -69,7 +75,22 @@ public class WXServerListener extends WebSocketClient {
                     dataService.matchRoomId(content);
                     break;
             }
+            //dota2 bot
+            Matcher reportM = Pattern.compile("^战报").matcher(content);
+            Matcher idM = Pattern.compile("^数字id|数字ID").matcher(content);
+            Matcher nameM = Pattern.compile("\\d+\\s([\\u4e00-\\u9fa5]+|\\w+)").matcher(content);
+            if (reportM.find()) {
+                sendTextMsg(replyId, dota2Bot.report(wxid, content));
+            } else if (idM.find()) {
+                sendTextMsg(replyId, dota2Bot.updateAccountId(wxid, content));
+            } else if (nameM.find()) {
+//                sendTextMsg(replyId, dota2Bot.updateAccountId());
+            }
 
+            //测试
+            if (content.equals("1")) {
+                getNicksByRoomId(receiver);
+            }
         }
 
     }

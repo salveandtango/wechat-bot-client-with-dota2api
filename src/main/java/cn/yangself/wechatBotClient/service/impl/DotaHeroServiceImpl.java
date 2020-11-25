@@ -42,13 +42,13 @@ public class DotaHeroServiceImpl extends ServiceImpl<DotaHeroMapper, DotaHero> i
             String name = heros.getJSONObject(i).getString("name");
             String translationCn = heros.getJSONObject(i).getString("localized_name");
             UpdateWrapper<DotaHero> uw = new UpdateWrapper<>();
-            uw.eq("hero_id", heroId).eq("hero_name", name).eq("translation_cn", translationCn);
+            uw.eq("hero_id", heroId);
             DotaHero dotaHero = new DotaHero();
-            dotaHero.setHeroId(heroId);
             dotaHero.setHeroName(name);
             dotaHero.setTranslationCn(translationCn);
             try {
                 saveOrUpdate(dotaHero, uw);
+                log.info("英雄更新完成");
             } catch (Exception e) {
                 log.error("英雄更新出错, 详情信息:{}", e.getMessage(), e);
             }
